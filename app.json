@@ -9,7 +9,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+       "infoPlist": {
+    "NSContactsUsageDescription": "L'app ha bisogno di accedere ai contatti per trovare utenti Blabbo tra i tuoi amici."
+  }
+    },
+   "android": {
+      "permissions": ["READ_CONTACTS"]
     },
      "splash": {
       "image": "./assets/images/splash.png",

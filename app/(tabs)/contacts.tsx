@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import * as Contacts from 'expo-contacts';
+
 import {
   View,
   Text,
@@ -18,12 +20,26 @@ export default function ContactsTab() {
   const router = useRouter();
   const { state: chatState, loadContacts, createChat } = useChat();
   const { state: authState } = useAuth();
+  const [deviceContacts, setDeviceContacts] = useState<Contacts.Contact[]>([]);
 
   useEffect(() => {
     if (authState.isAuthenticated) {
       loadContacts();
     }
   }, [authState.isAuthenticated]);
+useEffect(() => {
+  (async () => {
+    const { status } = await Contacts.requestPermissionsAsync();
+   if (status === 'granted') {
+  const { data } = await Contacts.getContactsAsync({
+    fields: [Contacts.Fields.PhoneNumbers],
+  });
+
+  setDeviceContacts(data); // Salva i contatti nello stato
+}
+
+  })();
+}, []);
 
   const handleContactPress = async (contact: Contact) => {
     if (!contact.isRegistered) {
@@ -87,6 +103,7 @@ export default function ContactsTab() {
         </Pressable>
       </View>
       
+
       <FlatList
         data={chatState.contacts}
         renderItem={renderContactItem}
