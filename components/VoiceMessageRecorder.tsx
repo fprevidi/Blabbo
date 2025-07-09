@@ -17,7 +17,8 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
 
   const startRecording = async () => {
     try {

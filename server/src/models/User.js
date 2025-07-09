@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
+  publicKey: { type: String },
+
   phoneNumber: {
     type: String,
     required: true,

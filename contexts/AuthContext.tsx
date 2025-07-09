@@ -3,7 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthState, User } from '../types';
 import { apiService } from '../services/api';
 import { socketService } from '../services/socketService';
-
+import { getBase64PublicKey } from '../utils/crypto';
+import { API_BASE_URL } from '../constants';
 interface AuthContextType {
   state: AuthState;
   sendOTP: (phoneNumber: string) => Promise<void>;
@@ -170,3 +171,18 @@ export const useAuth = () => {
   }
   return context;
 };
+
+
+
+async function uploadPublicKey(userId: string) {
+  const publicKey = await getBase64PublicKey();
+  if (!publicKey) return;
+
+  await fetch(`${API_BASE_URL}/users/${userId}/public-key`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ publicKey }),
+  });
+}

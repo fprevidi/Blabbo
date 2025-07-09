@@ -65,6 +65,15 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+    nonce: {
+    type: String,
+    default: null,
+  },
+  senderPublicKey: {
+    type: String,
+    default: null,
+  },
+
 }, {
   timestamps: true,
 });

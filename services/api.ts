@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://192.168.0.38:3000/api';
+import { API_BASE_URL } from '../constants';
 
 class ApiService {
   private baseURL: string;
@@ -28,12 +28,10 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'API request failed');
       }
-
       return await response.json();
     } catch (error) {
       console.error('API request error:', error);
@@ -41,7 +39,6 @@ class ApiService {
     }
   }
 
-  // Authentication endpoints
   async sendOTP(phoneNumber: string) {
     return this.request('/auth/send-otp', {
       method: 'POST',
@@ -67,7 +64,6 @@ class ApiService {
     });
   }
 
-  // Chat endpoints
   async getChats() {
     return this.request('/chats');
   }
@@ -90,7 +86,6 @@ class ApiService {
     });
   }
 
-  // Contact endpoints
   async getContacts() {
     return this.request('/contacts');
   }
@@ -102,19 +97,29 @@ class ApiService {
     });
   }
 
-  // File upload
-  async uploadFile(file: any, type: string) {
+  async uploadFile(blob: Blob, type: string) {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', {
+      uri: '',
+      name: 'encrypted.bin',
+      type: 'application/octet-stream',
+    } as any);
+
     formData.append('type', type);
 
-    return this.request('/upload', {
+    const uploadResponse = await fetch(`${this.baseURL}/upload`, {
       method: 'POST',
-      body: formData,
       headers: {
         ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
+      body: formData,
     });
+
+    if (!uploadResponse.ok) {
+      throw new Error('Upload fallito');
+    }
+
+    return await uploadResponse.json();
   }
 }
 

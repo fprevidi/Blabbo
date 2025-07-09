@@ -3,6 +3,10 @@ import { ChatState, Chat, Message, Contact } from '../types';
 import { apiService } from '../services/api';
 import { socketService } from '../services/socketService';
 import { useAuth } from './AuthContext';
+import { encryptMessageForRecipient } from '../utils/encryption';
+import { decryptMessageFromSender } from '../utils/encryption';
+
+
 
 interface ChatContextType {
   state: ChatState;
@@ -142,27 +146,82 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loadChatMessages = async (chatId: string) => {
-    try {
-      const messages = await apiService.getChatMessages(chatId);
-      dispatch({ type: 'SET_MESSAGES', payload: { chatId, messages } });
-    } catch (error) {
-      console.error('Error loading chat messages:', error);
-    }
-  };
+const loadChatMessages = async (chatId: string) => {
+  try {
+    const rawMessages = await apiService.getChatMessages(chatId);
 
-  const sendMessage = async (chatId: string, content: string, type: string) => {
-    try {
-      const message = await apiService.sendMessage(chatId, {
-        content,
-        type,
-        senderId: authState.user?.id,
-      });
-      socketService.sendMessage(message);
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  };
+    const decryptedMessages = await Promise.all(
+      rawMessages.map(async (msg) => {
+        try {
+          const decrypted = await decryptMessageFromSender({
+            ciphertext: msg.content,
+            nonce: msg.nonce,
+            senderPublicKey: msg.senderPublicKey,
+          });
+
+          return {
+            ...msg,
+            content: decrypted,
+          };
+        } catch (err) {
+          console.error('Errore nella decifratura di un messaggio:', err);
+          return msg; // fallback: lascialo cifrato
+        }
+      })
+    );
+
+    dispatch({ type: 'SET_MESSAGES', payload: { chatId, messages: decryptedMessages } });
+  } catch (error) {
+    console.error('Error loading chat messages:', error);
+  }
+};
+
+
+ const sendMessage = async (chatId: string, content: string, type: string) => {
+  try {
+    // ottieni l'id del destinatario (assumo che sia un'altra persona nella chat)
+    const chat = chats.find((c) => c._id === chatId);
+    if (!chat) throw new Error('Chat non trovata');
+
+    const recipientId = chat.members.find((id) => id !== authState.user?.id);
+    if (!recipientId) throw new Error('Destinatario non trovato');
+
+    // cifra il contenuto
+    const encrypted = await encryptMessageForRecipient(recipientId, content);
+
+    const message = await apiService.sendMessage(chatId, {
+      content: encrypted.ciphertext,
+      type,
+      senderId: authState.user?.id,
+      nonce: encrypted.nonce,
+      senderPublicKey: encrypted.senderPublicKey,
+    });
+
+    socketService.sendMessage(message);
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
+};
+socketService.on('receiveMessage', async (messageData) => {
+  try {
+    const decryptedContent = await decryptMessageFromSender({
+      ciphertext: messageData.content,
+      nonce: messageData.nonce,
+      senderPublicKey: messageData.senderPublicKey,
+    });
+
+    const message = {
+      ...messageData,
+      content: decryptedContent,
+    };
+
+    // Inserisci il messaggio nello stato (es: appendMessages(message))
+    appendMessageToChat(message);
+  } catch (error) {
+    console.error('Errore nella decifratura del messaggio ricevuto:', error);
+  }
+});
+
 
   const createChat = async (participants: string[], isGroup: boolean, name?: string) => {
     try {

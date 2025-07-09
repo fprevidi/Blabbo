@@ -6,6 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+
 require('dotenv').config();
 
 // Import routes
@@ -13,6 +14,7 @@ const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chats');
 const contactRoutes = require('./routes/contacts');
 const uploadRoutes = require('./routes/upload');
+const userRoutes = require('./routes/users');
 
 // Import socket handlers
 const socketHandlers = require('./sockets/socketHandlers');
@@ -38,6 +40,7 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -61,7 +64,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/upload', uploadRoutes);
-
+app.use('/users', userRoutes);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
