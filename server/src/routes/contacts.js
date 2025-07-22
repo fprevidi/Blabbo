@@ -6,6 +6,10 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
+function normalizePhoneNumber(number) {
+  return number.replace(/\D/g, ''); // Rimuove tutto tranne le cifre
+}
+
 // Get all contacts for a user
 router.get('/', auth, async (req, res) => {
   try {
@@ -33,61 +37,112 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+
+
+
+// Match rubrica: restituisce solo utenti registrati presenti nei contatti
+router.post('/match', auth, async (req, res) => {
+  try {
+    const contacts = req.body.contacts || [];
+
+
+const normalizedNumbers = contacts
+  .map(c => {
+    let raw = (c.phoneNumber || '').replace(/[^\d+]/g, '');
+    if (raw.startsWith('00')) raw = '+' + raw.slice(2);
+    return raw;
+  })
+  .filter(n => n.length >= 7);
+
+
+
+console.log('[DEBUG] Numeri normalizzati dal client:', normalizedNumbers);
+
+    const users = await User.find({
+      phoneNumber: { $in: normalizedNumbers },
+      _id: { $ne: req.userId },
+    });
+console.log('[DEBUG] Utenti trovati:', users.map(u => u.phoneNumber));
+
+    res.json(users.map(u => ({
+      id: u._id,
+      name: u.name,
+      phoneNumber: u.phoneNumber,
+      avatar: u.avatar,
+      isRegistered: true,
+      isOnline: u.isOnline,
+      lastSeen: u.lastSeen,
+    })));
+  } catch (err) {
+   
+    res.status(500).json({ message: 'Errore interno' });
+  }
+});
+
 // Sync contacts from phone
 router.post('/sync', auth, [
   body('contacts').isArray(),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {
+    if (!errors.isEmpty()) {    
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { contacts } = req.body;
     const syncedContacts = [];
+for (const contactData of contacts) {
+  const { name, phoneNumber } = contactData;
+  const cleaned = phoneNumber.replace(/\s+/g, '');
 
-    for (const contactData of contacts) {
-      const { name, phoneNumber } = contactData;
+  const safeRegex = cleaned.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-      // Find user by phone number
-      const registeredUser = await User.findOne({ phoneNumber });
-      
-      if (registeredUser && registeredUser._id.toString() !== req.userId) {
-        // Check if contact already exists
-        const existingContact = await Contact.findOne({
-          userId: req.userId,
-          contactUserId: registeredUser._id,
-        });
+  const registeredUser = await User.findOne({
+    phoneNumber: { $regex: safeRegex }
+  });
 
-        if (!existingContact) {
-          // Create new contact
-          const contact = new Contact({
-            userId: req.userId,
-            contactUserId: registeredUser._id,
-            name,
-            phoneNumber,
-          });
 
-          await contact.save();
-          
-          syncedContacts.push({
-            id: registeredUser._id,
-            name,
-            phoneNumber,
-            avatar: registeredUser.avatar,
-            isRegistered: true,
-            isOnline: registeredUser.isOnline,
-            lastSeen: registeredUser.lastSeen,
-          });
-        } else {
-          // Update existing contact name if different
-          if (existingContact.name !== name) {
-            existingContact.name = name;
-            await existingContact.save();
-          }
-        }
+const users = await User.find();
+
+
+  if (registeredUser && registeredUser._id.toString() !== req.userId) {
+  
+
+    const existingContact = await Contact.findOne({
+      userId: req.userId,
+      contactUserId: registeredUser._id,
+    });
+
+    if (!existingContact) {
+      const contact = new Contact({
+        userId: req.userId,
+        contactUserId: registeredUser._id,
+        name,
+        phoneNumber,
+      });
+
+      await contact.save();
+
+      syncedContacts.push({
+        id: registeredUser._id,
+        name,
+        phoneNumber,
+        avatar: registeredUser.avatar,
+        isRegistered: true,
+        isOnline: registeredUser.isOnline,
+        lastSeen: registeredUser.lastSeen,
+      });
+    } else {
+      if (existingContact.name !== name) {
+        existingContact.name = name;
+        await existingContact.save();
       }
     }
+  } else {
+    
+  }
+}
+
 
     res.json({
       message: 'Contacts synced successfully',

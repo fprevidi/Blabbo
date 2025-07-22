@@ -61,10 +61,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadStoredAuth = async () => {
     try {
+    
+
       const token = await AsyncStorage.getItem('auth_token');
       const userStr = await AsyncStorage.getItem('user');
       
-      if (token && userStr) {
+      if (token && userStr
+
+      ) {
         const user = JSON.parse(userStr);
         dispatch({ type: 'SET_TOKEN', payload: token });
         dispatch({ type: 'SET_USER', payload: user });

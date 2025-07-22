@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as Contacts from 'expo-contacts';
+import { apiService } from '@/services/api';
 
 import {
   View,
@@ -15,31 +16,46 @@ import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Contact } from '@/types';
 import { Users, MessageCircle, Plus } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 export default function ContactsTab() {
   const router = useRouter();
-  const { state: chatState, loadContacts, createChat } = useChat();
+  const { state: chatState, createChat, setContacts } = useChat();
+
   const { state: authState } = useAuth();
   const [deviceContacts, setDeviceContacts] = useState<Contacts.Contact[]>([]);
 
-  useEffect(() => {
-    if (authState.isAuthenticated) {
-      loadContacts();
-    }
-  }, [authState.isAuthenticated]);
-useEffect(() => {
-  (async () => {
-    const { status } = await Contacts.requestPermissionsAsync();
-   if (status === 'granted') {
-  const { data } = await Contacts.getContactsAsync({
-    fields: [Contacts.Fields.PhoneNumbers],
-  });
 
-  setDeviceContacts(data); // Salva i contatti nello stato
-}
+useFocusEffect(
+  useCallback(() => {
+    (async () => {
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status === 'granted') {
+        const { data } = await Contacts.getContactsAsync({
+          fields: [Contacts.Fields.PhoneNumbers],
+        });
 
-  })();
-}, []);
+        const simplified = data.flatMap(c => {
+          if (!Array.isArray(c.phoneNumbers) || c.phoneNumbers.length === 0) return [];
+          return [{
+            name: c.name,
+            phoneNumber: c.phoneNumbers[0]?.number ?? '',
+          }];
+        });
+
+        try {
+          const matched = await apiService.matchContacts(simplified);
+          console.log('📲 Utenti trovati nella rubrica:', matched);
+          setContacts(matched);
+        } catch (err) {
+          console.warn('❌ Errore nel match dei contatti', err);
+        }
+      }
+    })();
+  }, [])
+);
+
 
   const handleContactPress = async (contact: Contact) => {
     if (!contact.isRegistered) {
@@ -48,13 +64,12 @@ useEffect(() => {
     }
 
     try {
-      const chat = await createChat([contact.id], false);
-      if (chat) {
-        router.push({
-          pathname: '/chat',
-          params: { chatId: chat.id },
-        });
-      }
+const chat = await createChat([contact.id], false) as any;
+router.push({
+  pathname: '/chat',
+  params: { chatId: chat.id },
+});
+
     } catch (error) {
       Alert.alert('Error', 'Failed to create chat');
     }

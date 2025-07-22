@@ -6,7 +6,7 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: 'auth_token',
 };
 
-export const API_BASE_URL = 'http://192.168.0.38:3000/api';
+export const API_BASE_URL = 'http://192.168.0.43:3000/api';
 
 export const ENCRYPTION = {
   KEY_LENGTH: 32,

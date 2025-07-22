@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../constants';
+import {Message, Contact} from '../types'
 
 class ApiService {
   private baseURL: string;
@@ -67,10 +68,15 @@ class ApiService {
   async getChats() {
     return this.request('/chats');
   }
-
-  async getChatMessages(chatId: string) {
-    return this.request(`/chats/${chatId}/messages`);
-  }
+async matchContacts(contacts: { name: string; phoneNumber: string }[]): Promise<Contact[]> {
+  return this.request<Contact[]>('/contacts/match', {
+    method: 'POST',
+    body: JSON.stringify({ contacts }),
+  });
+}
+async getChatMessages(chatId: string): Promise<Message[]> {
+  return this.request<Message[]>(`/chats/${chatId}/messages`);
+}
 
   async sendMessage(chatId: string, message: any) {
     return this.request(`/chats/${chatId}/messages`, {
@@ -86,11 +92,11 @@ class ApiService {
     });
   }
 
-  async getContacts() {
-    return this.request('/contacts');
-  }
+async getContacts(): Promise<Contact[]> {
+  return this.request<Contact[]>('/contacts');
+}
 
-  async syncContacts(contacts: any[]) {
+cContacts(contacts: any[]) {
     return this.request('/contacts/sync', {
       method: 'POST',
       body: JSON.stringify({ contacts }),

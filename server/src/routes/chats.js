@@ -157,6 +157,7 @@ router.get('/:chatId/messages', auth, async (req, res) => {
 });
 
 // Send a message
+// Send a message
 router.post('/:chatId/messages', auth, [
   body('content').isLength({ min: 1 }),
   body('type').isIn(['text', 'image', 'video', 'audio', 'document']),
@@ -168,7 +169,10 @@ router.post('/:chatId/messages', auth, [
     }
 
     const { chatId } = req.params;
-    const { content, type, fileUrl, fileName, fileSize, audioDuration, replyTo } = req.body;
+    const {
+      content, type, fileUrl, fileName, fileSize,
+      audioDuration, replyTo, nonce, senderPublicKey
+    } = req.body;
 
     // Check if user is participant in the chat
     const chat = await Chat.findOne({
@@ -191,6 +195,8 @@ router.post('/:chatId/messages', auth, [
       fileSize,
       audioDuration,
       replyTo,
+      nonce,
+      senderPublicKey,
     });
 
     await message.save();
@@ -215,6 +221,8 @@ router.post('/:chatId/messages', auth, [
       fileName: message.fileName,
       fileSize: message.fileSize,
       audioDuration: message.audioDuration,
+      nonce: message.nonce,
+      senderPublicKey: message.senderPublicKey,
     };
 
     res.status(201).json(formattedMessage);
