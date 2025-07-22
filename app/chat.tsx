@@ -26,7 +26,7 @@ export default function ChatScreen() {
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  const currentChat = chatState.chats.find(chat => chat.id === chatId);
+  const currentChat = chatState.chats.find(chat => chat._id === chatId);
   const messages = chatState.messages[chatId || ''] || [];
 
   useEffect(() => {
@@ -38,8 +38,8 @@ export default function ChatScreen() {
   useEffect(() => {
     // Mark messages as read when opening chat
     messages.forEach(message => {
-      if (!message.isRead && message.senderId !== authState.user?.id) {
-        markMessageAsRead(message.id);
+      if (!message.isRead && message.senderId !== authState.user?._id) {
+        markMessageAsRead(message._id);
       }
     });
   }, [messages]);
@@ -66,15 +66,17 @@ export default function ChatScreen() {
     }
   };
 
-  const renderMessage = ({ item }: { item: any }) => {
-    const isOwn = item.senderId === authState.user?.id;
-    return (
-      <MessageBubble
-        message={item}
-        isOwn={isOwn}
-      />
-    );
-  };
+const renderMessage = ({ item }: { item: any }) => {
+  const isOwn = item.senderId === authState.user?._id;
+  return (
+    <MessageBubble
+      message={item}
+      isOwn={isOwn}
+      onDelete={(id) => console.log('🗑 Cliccato delete per messaggio', id)}
+    />
+  );
+};
+
 
   const renderHeader = () => (
     <View style={styles.header}>

@@ -2,11 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Message } from '../types';
 import { Check, CheckCheck } from 'lucide-react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import { Trash2 } from 'lucide-react-native';
+
 
 interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
   onPress?: () => void;
+  onDelete?: (messageId: string) => void;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -32,8 +36,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       return <Check size={16} color="#9E9E9E" />;
     }
   };
+const renderRightActions = () => (
+  <Pressable
+    onPress={() => onDelete?.(message._id)}
+    style={styles.deleteAction}
+  >
+    <Trash2 size={20} color="#fff" />
+  </Pressable>
+);
 
   return (
+  <Swipeable renderRightActions={renderRightActions}>
     <Pressable onPress={onPress} style={styles.container}>
       <View style={[
         styles.bubble,
@@ -56,7 +69,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         </View>
       </View>
     </Pressable>
-  );
+  </Swipeable>
+);
+
 };
 
 const styles = StyleSheet.create({
